@@ -5,7 +5,6 @@ import (
 	"deployment-railway/controllers"
 	"deployment-railway/database"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -14,33 +13,37 @@ import (
 )
 
 var (
-	db *sql.DB
+	db  *sql.DB
+	err error
 )
 
 func main() {
-	envFile := "config/.env.railway"
-	err := godotenv.Load(envFile)
+	err = godotenv.Load("config/.env")
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		panic("Error loading .env file")
+	}
+	psqlInfo := fmt.Sprintf(`host=%s port=%s user=%s password=%s dbname=%s sslmode=disable`,
+		os.Getenv("PGHOST"),
+		os.Getenv("PGPORT"),
+		os.Getenv("PGUSER"),
+		os.Getenv("PGPASSWORD"),
+		os.Getenv("PGDATABASE"),
+	)
+
+	db, err = sql.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err)
 	}
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		log.Fatal("DATABASE_URL tidak ditemukan di environment variable")
-	}
-
-	db, err = sql.Open("postgres", dsn)
-	if err != nil {
-		log.Fatalf("Gagal open database: %v", err)
-	}
 	defer db.Close()
 
 	err = db.Ping()
+
 	if err != nil {
-		log.Fatalf("Tidak bisa konek ke database: %v", err)
+		panic(err)
 	}
 
-	fmt.Println("Berhasil konek ke Railway PostgreSQL")
+	fmt.Println("successfully connected to database")
 
 	database.DBMigrate(db)
 
@@ -52,4 +55,5 @@ func main() {
 	router.DELETE("/bioskop/:id", controllers.DeleteBioskop(db))
 
 	router.Run(":8080")
+
 }
