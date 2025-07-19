@@ -18,7 +18,7 @@ var (
 )
 
 func main() {
-	err = godotenv.Load("config/.env")
+	err = godotenv.Load("config/.env.railway")
 	if err != nil {
 		panic("Error loading .env file")
 	}
